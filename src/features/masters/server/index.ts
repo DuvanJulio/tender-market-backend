@@ -1,1 +1,5 @@
 export * from "./get-cities.handler"
+export * from "./get-departments.handler"
+export * from "./post-department.handler"
+export * from "./post-city.handler"
+export * from "./delete-city.handler"
