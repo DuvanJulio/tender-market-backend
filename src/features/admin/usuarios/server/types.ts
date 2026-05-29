@@ -1,0 +1,22 @@
+export const USUARIOS_ADMIN_MESSAGES = {
+  loadSuccess: "Usuarios cargados",
+  detailLoadSuccess: "Detalle del usuario cargado",
+  loadFailed: "No se pudieron cargar los usuarios",
+  notFound: "Usuario no encontrado",
+  updateSuccess: "Usuario actualizado correctamente",
+  updateFailed: "No se pudo actualizar el usuario",
+  estadoUpdateSuccess: "Estado del usuario actualizado",
+  estadoUpdateFailed: "No se pudo actualizar el estado",
+  invalidEstado: "Estado no válido",
+  invalidTransition:
+    "No se puede cambiar a ese estado desde el estado actual del usuario",
+  approveSuccess: "Usuario aceptado: ya puede ingresar a la plataforma",
+  deactivateSuccess: "Usuario desactivado: no podrá acceder a la plataforma",
+  reactivateSuccess: "Usuario reactivado correctamente",
+  deleteSuccess: "Usuario eliminado correctamente",
+  deleteFailed: "No se pudo eliminar el usuario",
+  hasProducts: "No se puede eliminar: el proveedor tiene productos asociados",
+  nombreRequired: "El nombre es obligatorio",
+  negocioRequired: "El nombre del negocio es obligatorio",
+  internalError: "Error interno del servidor",
+} as const

@@ -1,6 +1,10 @@
 export type TUserRole = "tendero" | "proveedor" | "admin"
 
-export type TUserAccountStatus = "activo" | "inactivo" | "bloqueado"
+export type TUserAccountStatus =
+  | "activo"
+  | "inactivo"
+  | "bloqueado"
+  | "pendiente"
 
 export interface ISignInRequest {
   email: string
