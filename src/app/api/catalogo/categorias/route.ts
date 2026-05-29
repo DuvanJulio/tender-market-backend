@@ -3,8 +3,8 @@ import {
   postCategoriaHandler,
 } from "@/features/catalogo/categorias/server"
 
-export async function GET() {
-  return getCategoriasHandler()
+export async function GET(request: Request) {
+  return getCategoriasHandler(request)
 }
 
 export async function POST(request: Request) {

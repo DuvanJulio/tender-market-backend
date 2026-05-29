@@ -1,5 +1,5 @@
 import { getUsuariosAdminHandler } from "@/features/admin/usuarios/server"
 
-export async function GET() {
-  return getUsuariosAdminHandler()
+export async function GET(request: Request) {
+  return getUsuariosAdminHandler(request)
 }

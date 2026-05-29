@@ -18,11 +18,23 @@ export type IProductosSummary = {
   rechazados: number
 }
 
+export type IPaginationMeta = {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+}
+
+export type IPaginatedProductosAdmin = {
+  items: IProductoAdmin[]
+  pagination: IPaginationMeta
+}
+
 export type IGetProductosAdminResponse = {
   success: boolean
   message: string
   data?: {
-    productos: IProductoAdmin[]
+    productos: IPaginatedProductosAdmin
     summary: IProductosSummary
   }
 }

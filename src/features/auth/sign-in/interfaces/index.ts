@@ -27,6 +27,8 @@ export interface IGetUserDataResponseData {
   nombre?: string
   email?: string
   rol?: TUserRole
+  /** Nombre de tienda (tendero) o empresa (proveedor). */
+  negocio?: string
 }
 
 export interface IGetUserDataResponse {

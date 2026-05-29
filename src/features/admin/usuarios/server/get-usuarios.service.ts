@@ -1,159 +1,211 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import type { IUsuarioAdmin } from "../interfaces"
+import type { IUsuarioAdminDetalle } from "../interfaces"
 import { USUARIOS_ADMIN_MESSAGES } from "./types"
 import {
+  buildFullName,
+  mapEstado,
   mapRol,
-  mapUsuarioAdminRow,
   pickRelationField,
-  type TProveedorProfile,
   type TRawUsuario,
-  type TTenderoProfile,
 } from "./usuario-mapper"
 
-type TGetUsuariosAdminServiceResult =
-  | { ok: true; data: IUsuarioAdmin[] }
+type TGetUsuarioServiceResult =
+  | { ok: true; data: IUsuarioAdminDetalle }
   | { ok: false; message: string; status: number }
 
-async function buildEmailByUserIdMap(): Promise<Map<string, string>> {
-  const map = new Map<string, string>()
-  let page = 1
-  const perPage = 200
-
-  while (true) {
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers({
-      page,
-      perPage,
-    })
-
-    if (error) {
-      console.warn("No se pudieron cargar emails de auth:", error.message)
-      break
-    }
-
-    for (const user of data.users) {
-      if (user.email) map.set(user.id, user.email)
-    }
-
-    if (data.users.length < perPage) break
-    page += 1
-  }
-
-  return map
+type TRawUsuarioDetalle = TRawUsuario & {
+  last_login: string | null
+  updated_at: string
 }
 
-async function loadCiudadByDireccionId(
-  direccionIds: number[]
-): Promise<Map<number, string>> {
-  const map = new Map<number, string>()
-  if (direccionIds.length === 0) return map
-
-  const { data, error } = await supabaseAdmin
-    .from("direcciones")
-    .select("id, ciudades(nombre)")
-    .in("id", direccionIds)
-
-  if (error) {
-    console.warn("Ciudades por dirección no disponibles:", error.message)
-    return map
-  }
-
-  for (const row of data ?? []) {
-    const ciudad = pickRelationField(
-      row.ciudades as { nombre: string } | { nombre: string }[] | null
-    )
-    if (ciudad) map.set(row.id as number, ciudad)
-  }
-
-  return map
+type TRawDireccion = {
+  direccion: string
+  barrio: string | null
+  ciudades:
+    | { nombre: string; departamentos: { nombre: string } | null }
+    | { nombre: string; departamentos: { nombre: string } | null }[]
+    | null
 }
 
-export async function fetchUsuariosAdminContext(usuarioIds: string[]) {
-  const [emailMap, tenderosRes, proveedoresRes] = await Promise.all([
-    buildEmailByUserIdMap(),
-    usuarioIds.length > 0
-      ? supabaseAdmin
-          .from("tenderos")
-          .select(
-            "usuario_id, nombre_tienda, direccion_id, direcciones(ciudades(nombre))"
-          )
-          .in("usuario_id", usuarioIds)
-      : Promise.resolve({ data: [], error: null }),
-    usuarioIds.length > 0
-      ? supabaseAdmin
-          .from("proveedores")
-          .select(
-            "usuario_id, nombre_empresa, direccion_id, direcciones(ciudades(nombre))"
-          )
-          .in("usuario_id", usuarioIds)
-      : Promise.resolve({ data: [], error: null }),
-  ])
-
-  const tenderoByUserId = new Map<string, TTenderoProfile>()
-  for (const row of (tenderosRes.data ?? []) as TTenderoProfile[]) {
-    tenderoByUserId.set(row.usuario_id, row)
-  }
-
-  const proveedorByUserId = new Map<string, TProveedorProfile>()
-  for (const row of (proveedoresRes.data ?? []) as TProveedorProfile[]) {
-    proveedorByUserId.set(row.usuario_id, row)
-  }
-
-  const direccionIds = [
-    ...new Set(
-      [...(tenderosRes.data ?? []), ...(proveedoresRes.data ?? [])]
-        .map((p) => p.direccion_id as number | null)
-        .filter((id): id is number => typeof id === "number")
-    ),
-  ]
-
-  const ciudadByDireccionId = await loadCiudadByDireccionId(direccionIds)
-
-  return { emailMap, tenderoByUserId, proveedorByUserId, ciudadByDireccionId }
+function pickDepartamento(
+  ciudades: TRawDireccion["ciudades"]
+): string | null {
+  if (!ciudades) return null
+  const ciudad = Array.isArray(ciudades) ? ciudades[0] : ciudades
+  const dept = ciudad?.departamentos
+  if (!dept) return null
+  return Array.isArray(dept) ? dept[0]?.nombre ?? null : dept.nombre ?? null
 }
 
-export async function getUsuariosAdminService(): Promise<TGetUsuariosAdminServiceResult> {
-  const { data: rows, error } = await supabaseAdmin
-    .from("usuarios")
-    .select(
-      "id, nombre, apellido, telefono, created_at, roles(nombre), estados_usuarios(nombre)"
-    )
-    .order("created_at", { ascending: false })
+function pickCiudadNombreDetalle(
+  ciudades: TRawDireccion["ciudades"]
+): string | null {
+  if (!ciudades) return null
+  const ciudad = Array.isArray(ciudades) ? ciudades[0] : ciudades
+  return ciudad?.nombre ?? null
+}
 
-  if (error) {
-    console.error("Error al cargar usuarios:", error)
+export async function getUsuarioAdminService(
+  usuarioId: string
+): Promise<TGetUsuarioServiceResult> {
+  if (!usuarioId) {
     return {
       ok: false,
-      message: USUARIOS_ADMIN_MESSAGES.loadFailed,
-      status: 500,
+      message: USUARIOS_ADMIN_MESSAGES.notFound,
+      status: 400,
     }
   }
 
-  const usuariosRaw = (rows ?? []) as TRawUsuario[]
-  const usuariosFiltrados = usuariosRaw.filter((row) => {
-    const rol = pickRelationField(row.roles)
-    return rol === "tendero" || rol === "proveedor"
-  })
+  const { data: row, error } = await supabaseAdmin
+    .from("usuarios")
+    .select(
+      "id, nombre, apellido, telefono, created_at, updated_at, last_login, roles(nombre), estados_usuarios(nombre)"
+    )
+    .eq("id", usuarioId)
+    .maybeSingle()
 
-  const context = await fetchUsuariosAdminContext(
-    usuariosFiltrados.map((u) => u.id)
+  if (error || !row) {
+    return {
+      ok: false,
+      message: USUARIOS_ADMIN_MESSAGES.notFound,
+      status: 404,
+    }
+  }
+
+  const usuario = row as TRawUsuarioDetalle
+  const rolNombre = pickRelationField(usuario.roles)
+  const rol = mapRol(rolNombre)
+
+  if (!rol) {
+    return {
+      ok: false,
+      message: USUARIOS_ADMIN_MESSAGES.notFound,
+      status: 404,
+    }
+  }
+
+  const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(
+    usuarioId
   )
 
-  const data: IUsuarioAdmin[] = usuariosFiltrados.flatMap((row) => {
-    const rol = pickRelationField(row.roles)
-    const mapped = mapUsuarioAdminRow(row, {
-      email: context.emailMap.get(row.id) ?? null,
-      tendero:
-        rol === "tendero"
-          ? context.tenderoByUserId.get(row.id)
-          : undefined,
-      proveedor:
-        rol === "proveedor"
-          ? context.proveedorByUserId.get(row.id)
-          : undefined,
-      ciudadByDireccionId: context.ciudadByDireccionId,
-    })
-    return mapped ? [mapped] : []
-  })
+  let nit: string | null = null
+  let nombreTienda: string | null = null
+  let nombreEmpresa: string | null = null
+  let nombreContacto: string | null = null
+  let telefonoNegocio: string | null = null
+  let direccion: string | null = null
+  let barrio: string | null = null
+  let ciudad: string | null = null
+  let departamento: string | null = null
+
+  if (rol === "tendero") {
+    const { data: tendero } = await supabaseAdmin
+      .from("tenderos")
+      .select(
+        "nombre_tienda, telefono, nit, direcciones(direccion, barrio, ciudades(nombre, departamentos(nombre)))"
+      )
+      .eq("usuario_id", usuarioId)
+      .maybeSingle()
+
+    if (tendero) {
+      nombreTienda = tendero.nombre_tienda ?? null
+      nit = tendero.nit ?? null
+      telefonoNegocio = tendero.telefono ?? null
+      const dir = tendero.direcciones as unknown as
+        | TRawDireccion
+        | TRawDireccion[]
+        | null
+      const dirRow = Array.isArray(dir) ? dir[0] : dir
+      if (dirRow) {
+        direccion = dirRow.direccion ?? null
+        barrio = dirRow.barrio ?? null
+        ciudad = pickCiudadNombreDetalle(dirRow.ciudades)
+        departamento = pickDepartamento(dirRow.ciudades)
+      }
+    }
+  } else {
+    const { data: proveedor } = await supabaseAdmin
+      .from("proveedores")
+      .select(
+        "nombre_empresa, nombre_contacto, telefono, nit, direcciones(direccion, barrio, ciudades(nombre, departamentos(nombre)))"
+      )
+      .eq("usuario_id", usuarioId)
+      .maybeSingle()
+
+    if (proveedor) {
+      nombreEmpresa = proveedor.nombre_empresa ?? null
+      nombreContacto = proveedor.nombre_contacto ?? null
+      nit = proveedor.nit ?? null
+      telefonoNegocio = proveedor.telefono ?? null
+      const dir = proveedor.direcciones as unknown as
+        | TRawDireccion
+        | TRawDireccion[]
+        | null
+      const dirRow = Array.isArray(dir) ? dir[0] : dir
+      if (dirRow) {
+        direccion = dirRow.direccion ?? null
+        barrio = dirRow.barrio ?? null
+        ciudad = pickCiudadNombreDetalle(dirRow.ciudades)
+        departamento = pickDepartamento(dirRow.ciudades)
+      }
+    }
+  }
+
+  if (!direccion && (rol === "tendero" || rol === "proveedor")) {
+    const table = rol === "tendero" ? "tenderos" : "proveedores"
+    const { data: profile } = await supabaseAdmin
+      .from(table)
+      .select("direccion_id")
+      .eq("usuario_id", usuarioId)
+      .maybeSingle()
+
+    if (profile?.direccion_id) {
+      const { data: dirRow } = await supabaseAdmin
+        .from("direcciones")
+        .select("direccion, barrio, ciudades(nombre, departamentos(nombre))")
+        .eq("id", profile.direccion_id)
+        .maybeSingle()
+
+      if (dirRow) {
+        direccion = dirRow.direccion ?? null
+        barrio = dirRow.barrio ?? null
+        const ciudadesRaw = dirRow.ciudades as unknown as TRawDireccion["ciudades"]
+        ciudad = pickCiudadNombreDetalle(ciudadesRaw)
+        departamento = pickDepartamento(ciudadesRaw)
+      }
+    }
+  }
+
+  const negocio =
+    rol === "tendero"
+      ? (nombreTienda ?? "—")
+      : (nombreEmpresa ?? "—")
+
+  const data: IUsuarioAdminDetalle = {
+    id: usuario.id,
+    nombre: buildFullName(usuario.nombre, usuario.apellido),
+    nombre_pila: usuario.nombre ?? "",
+    apellido: usuario.apellido,
+    email: authUser.user?.email ?? null,
+    telefono: usuario.telefono,
+    rol,
+    negocio,
+    ciudad,
+    estado: mapEstado(pickRelationField(usuario.estados_usuarios)),
+    pedidos: 0,
+    total_gastado: 0,
+    fecha_registro: usuario.created_at,
+    fecha_actualizacion: usuario.updated_at,
+    ultimo_acceso: usuario.last_login,
+    nit,
+    nombre_tienda: nombreTienda,
+    nombre_empresa: nombreEmpresa,
+    nombre_contacto: nombreContacto,
+    telefono_negocio: telefonoNegocio,
+    direccion,
+    barrio,
+    departamento,
+  }
 
   return { ok: true, data }
 }

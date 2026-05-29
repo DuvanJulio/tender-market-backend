@@ -1,24 +1,28 @@
 import { USUARIOS_ADMIN_MESSAGES } from "./types"
-import { getUsuariosAdminService } from "./get-usuarios.service"
+import { getUsuarioAdminService } from "./get-usuario.service"
 import {
   usuariosAdminErrorResponse,
-  usuariosAdminListSuccessResponse,
+  usuariosAdminOneSuccessResponse,
 } from "./responses"
 
-export async function getUsuariosAdminHandler() {
+export async function getUsuarioAdminHandler(
+  _request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const result = await getUsuariosAdminService()
+    const { id } = await context.params
+    const result = await getUsuarioAdminService(id)
 
     if (!result.ok) {
       return usuariosAdminErrorResponse(result.message, result.status)
     }
 
-    return usuariosAdminListSuccessResponse(
-      USUARIOS_ADMIN_MESSAGES.loadSuccess,
+    return usuariosAdminOneSuccessResponse(
+      USUARIOS_ADMIN_MESSAGES.detailLoadSuccess,
       result.data
     )
   } catch (error) {
-    console.error("Error en get-usuarios-admin:", error)
+    console.error("Error en get-usuario-admin:", error)
     return usuariosAdminErrorResponse(
       USUARIOS_ADMIN_MESSAGES.internalError,
       500
