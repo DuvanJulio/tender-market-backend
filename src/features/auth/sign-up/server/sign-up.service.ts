@@ -46,6 +46,7 @@ export async function signUpService(
       nombre: payload.nombre,
       apellido: payload.apellido,
       telefono: payload.telefono,
+      estado_id: 1,
     })
     .eq("id", userId)
 

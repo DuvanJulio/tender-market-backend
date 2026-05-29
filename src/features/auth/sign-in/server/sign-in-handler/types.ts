@@ -11,7 +11,10 @@ export const SIGN_IN_MESSAGES = {
   missingCredentials: "Email y contraseña son requeridos",
   invalidCredentials: "Credenciales incorrectas",
   blockedAccount: "Tu cuenta ha sido bloqueada. Contacta al administrador.",
-  inactiveAccount: "Tu cuenta está inactiva.",
+  inactiveAccount:
+    "Tu cuenta está inactiva o bloqueada. Contacta al administrador si necesitas ayuda.",
+  pendingAccount:
+    "Tu cuenta está pendiente de aprobación. Te notificaremos cuando puedas ingresar.",
   success: "Login exitoso",
   internalError: "Error interno del servidor",
 } as const

@@ -18,20 +18,20 @@ async function handleBlockedAccountStatus(
   supabase: SupabaseClient,
   estado: TUserAccountStatus | undefined
 ): Promise<TSignInServiceResult | null> {
-  if (estado === "bloqueado") {
-    await supabase.auth.signOut()
-    return {
-      ok: false,
-      message: SIGN_IN_MESSAGES.blockedAccount,
-      status: 403,
-    }
-  }
-
-  if (estado === "inactivo") {
+  if (estado === "inactivo" || estado === "bloqueado") {
     await supabase.auth.signOut()
     return {
       ok: false,
       message: SIGN_IN_MESSAGES.inactiveAccount,
+      status: 403,
+    }
+  }
+
+  if (estado === "pendiente") {
+    await supabase.auth.signOut()
+    return {
+      ok: false,
+      message: SIGN_IN_MESSAGES.pendingAccount,
       status: 403,
     }
   }
