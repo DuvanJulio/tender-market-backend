@@ -67,8 +67,20 @@ export type IGetUsuarioResponse = {
   data?: IUsuarioAdminDetalle
 }
 
+export type IPaginationMeta = {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+}
+
+export type IPaginatedUsuariosAdmin = {
+  items: IUsuarioAdmin[]
+  pagination: IPaginationMeta
+}
+
 export type IGetUsuariosAdminResponse = {
   success: boolean
   message: string
-  data?: IUsuarioAdmin[]
+  data?: IPaginatedUsuariosAdmin
 }

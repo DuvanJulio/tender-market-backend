@@ -1,8 +1,12 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import {
+  buildPaginationMeta,
+  getPaginationRange,
+  type IPaginatedResult,
+} from "@/lib/pagination"
 import type { IUsuarioAdmin } from "../interfaces"
 import { USUARIOS_ADMIN_MESSAGES } from "./types"
 import {
-  mapRol,
   mapUsuarioAdminRow,
   pickRelationField,
   type TProveedorProfile,
@@ -10,9 +14,19 @@ import {
   type TTenderoProfile,
 } from "./usuario-mapper"
 
+export type TGetUsuariosAdminQuery = {
+  page: number
+  pageSize: number
+  search?: string
+  rol?: "tendero" | "proveedor"
+  estado?: "activo" | "pendiente" | "inactivo"
+}
+
 type TGetUsuariosAdminServiceResult =
-  | { ok: true; data: IUsuarioAdmin[] }
+  | { ok: true; data: IPaginatedResult<IUsuarioAdmin> }
   | { ok: false; message: string; status: number }
+
+const BLOQUEADO_ESTADO_ID = 4
 
 async function buildEmailByUserIdMap(): Promise<Map<string, string>> {
   const map = new Map<string, string>()
@@ -111,13 +125,71 @@ export async function fetchUsuariosAdminContext(usuarioIds: string[]) {
   return { emailMap, tenderoByUserId, proveedorByUserId, ciudadByDireccionId }
 }
 
-export async function getUsuariosAdminService(): Promise<TGetUsuariosAdminServiceResult> {
-  const { data: rows, error } = await supabaseAdmin
+async function resolveRolIds(): Promise<Map<string, number>> {
+  const { data } = await supabaseAdmin
+    .from("roles")
+    .select("id, nombre")
+    .in("nombre", ["tendero", "proveedor"])
+
+  const map = new Map<string, number>()
+  for (const row of data ?? []) {
+    if (row.nombre === "tendero" || row.nombre === "proveedor") {
+      map.set(row.nombre, row.id)
+    }
+  }
+  return map
+}
+
+export async function getUsuariosAdminService(
+  query: TGetUsuariosAdminQuery
+): Promise<TGetUsuariosAdminServiceResult> {
+  const { page, pageSize, search, rol, estado } = query
+  const { from, to } = getPaginationRange(page, pageSize)
+
+  const rolIdsByNombre = await resolveRolIds()
+  const allowedRolIds = [...rolIdsByNombre.values()]
+
+  if (allowedRolIds.length === 0) {
+    return {
+      ok: true,
+      data: {
+        items: [],
+        pagination: buildPaginationMeta(page, pageSize, 0),
+      },
+    }
+  }
+
+  let dbQuery = supabaseAdmin
     .from("usuarios")
     .select(
-      "id, nombre, apellido, telefono, created_at, roles(nombre), estados_usuarios(nombre)"
+      "id, nombre, apellido, telefono, created_at, roles!inner(nombre), estados_usuarios!inner(nombre)",
+      { count: "exact" }
     )
+    .in("rol_id", allowedRolIds)
     .order("created_at", { ascending: false })
+
+  if (rol) {
+    const rolId = rolIdsByNombre.get(rol)
+    if (rolId) dbQuery = dbQuery.eq("rol_id", rolId)
+  }
+
+  if (estado === "pendiente") {
+    dbQuery = dbQuery.eq("estado_id", 1)
+  } else if (estado === "activo") {
+    dbQuery = dbQuery.eq("estado_id", 2)
+  } else if (estado === "inactivo") {
+    dbQuery = dbQuery.in("estado_id", [3, BLOQUEADO_ESTADO_ID])
+  }
+
+  const searchTerm = search?.trim()
+  if (searchTerm) {
+    const pattern = `%${searchTerm}%`
+    dbQuery = dbQuery.or(
+      `nombre.ilike.${pattern},apellido.ilike.${pattern},telefono.ilike.${pattern}`
+    )
+  }
+
+  const { data: rows, error, count } = await dbQuery.range(from, to)
 
   if (error) {
     console.error("Error al cargar usuarios:", error)
@@ -129,25 +201,22 @@ export async function getUsuariosAdminService(): Promise<TGetUsuariosAdminServic
   }
 
   const usuariosRaw = (rows ?? []) as TRawUsuario[]
-  const usuariosFiltrados = usuariosRaw.filter((row) => {
-    const rol = pickRelationField(row.roles)
-    return rol === "tendero" || rol === "proveedor"
-  })
+  const total = count ?? 0
 
   const context = await fetchUsuariosAdminContext(
-    usuariosFiltrados.map((u) => u.id)
+    usuariosRaw.map((u) => u.id)
   )
 
-  const data: IUsuarioAdmin[] = usuariosFiltrados.flatMap((row) => {
-    const rol = pickRelationField(row.roles)
+  const items: IUsuarioAdmin[] = usuariosRaw.flatMap((row) => {
+    const rolNombre = pickRelationField(row.roles)
     const mapped = mapUsuarioAdminRow(row, {
       email: context.emailMap.get(row.id) ?? null,
       tendero:
-        rol === "tendero"
+        rolNombre === "tendero"
           ? context.tenderoByUserId.get(row.id)
           : undefined,
       proveedor:
-        rol === "proveedor"
+        rolNombre === "proveedor"
           ? context.proveedorByUserId.get(row.id)
           : undefined,
       ciudadByDireccionId: context.ciudadByDireccionId,
@@ -155,5 +224,11 @@ export async function getUsuariosAdminService(): Promise<TGetUsuariosAdminServic
     return mapped ? [mapped] : []
   })
 
-  return { ok: true, data }
+  return {
+    ok: true,
+    data: {
+      items,
+      pagination: buildPaginationMeta(page, pageSize, total),
+    },
+  }
 }

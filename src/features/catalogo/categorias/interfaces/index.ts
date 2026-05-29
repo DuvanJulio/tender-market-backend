@@ -21,10 +21,22 @@ export type ICategoriaAdmin = {
   estado: boolean
 }
 
+export type IPaginationMeta = {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+}
+
+export type IPaginatedCategoriasAdmin = {
+  items: ICategoriaAdmin[]
+  pagination: IPaginationMeta
+}
+
 export type IGetCategoriasResponse = {
   success: boolean
   message: string
-  data?: ICategoriaAdmin[]
+  data?: IPaginatedCategoriasAdmin
 }
 
 export type TPostCategoriaBody = {

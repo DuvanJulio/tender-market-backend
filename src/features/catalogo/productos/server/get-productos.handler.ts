@@ -1,13 +1,33 @@
+import { parsePaginationSearchParams } from "@/lib/pagination"
 import { PRODUCTOS_MESSAGES } from "./types"
-import { getProductosAdminService } from "./get-productos.service"
+import {
+  getProductosAdminService,
+  type TGetProductosAdminQuery,
+} from "./get-productos.service"
 import {
   productosErrorResponse,
   productosGetSuccessResponse,
 } from "./responses"
 
-export async function getProductosAdminHandler() {
+function parseProductosQuery(request: Request): TGetProductosAdminQuery {
+  const { searchParams } = new URL(request.url)
+  const { page, pageSize } = parsePaginationSearchParams(searchParams)
+  const search = searchParams.get("search")?.trim() || undefined
+  const estadoParam = searchParams.get("estado")
+  const estado =
+    estadoParam === "borrador" ||
+    estadoParam === "publicado" ||
+    estadoParam === "inactivo"
+      ? estadoParam
+      : undefined
+
+  return { page, pageSize, search, estado }
+}
+
+export async function getProductosAdminHandler(request: Request) {
   try {
-    const result = await getProductosAdminService()
+    const query = parseProductosQuery(request)
+    const result = await getProductosAdminService(query)
 
     if (!result.ok) {
       return productosErrorResponse(result.message, result.status)

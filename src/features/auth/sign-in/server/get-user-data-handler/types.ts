@@ -5,7 +5,7 @@ export type { IGetUserDataResponse }
 export interface IUsuarioBasicProfile {
   nombre: string | null
   apellido: string | null
-  roles: { nombre: string } | null
+  roles: { nombre: string } | { nombre: string }[] | null
 }
 
 export const GET_USER_DATA_MESSAGES = {

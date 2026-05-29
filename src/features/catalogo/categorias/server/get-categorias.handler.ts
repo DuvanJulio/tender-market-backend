@@ -1,13 +1,25 @@
+import { parsePaginationSearchParams } from "@/lib/pagination"
 import { CATEGORIAS_MESSAGES } from "./types"
-import { getCategoriasService } from "./get-categorias.service"
+import {
+  getCategoriasService,
+  type TGetCategoriasQuery,
+} from "./get-categorias.service"
 import {
   categoriasErrorResponse,
   categoriasGetSuccessResponse,
 } from "./responses"
 
-export async function getCategoriasHandler() {
+function parseCategoriasQuery(request: Request): TGetCategoriasQuery {
+  const { searchParams } = new URL(request.url)
+  const { page, pageSize } = parsePaginationSearchParams(searchParams)
+  const search = searchParams.get("search")?.trim() || undefined
+  return { page, pageSize, search }
+}
+
+export async function getCategoriasHandler(request: Request) {
   try {
-    const result = await getCategoriasService()
+    const query = parseCategoriasQuery(request)
+    const result = await getCategoriasService(query)
 
     if (!result.ok) {
       return categoriasErrorResponse(result.message, result.status)
