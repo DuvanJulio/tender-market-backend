@@ -1,0 +1,17 @@
+export const CATEGORIAS_MESSAGES = {
+  loadSuccess: "Categorías cargadas",
+  loadFailed: "No se pudieron cargar las categorías",
+  createSuccess: "Categoría creada correctamente",
+  createFailed: "No se pudo crear la categoría",
+  deleteSuccess: "Categoría eliminada correctamente",
+  deleteFailed: "No se pudo eliminar la categoría",
+  notFound: "Categoría no encontrada",
+  nombreRequired: "El nombre es obligatorio",
+  slugRequired: "El slug es obligatorio",
+  slugExists: "Ya existe una categoría con ese slug",
+  parentNotFound: "La categoría padre no existe",
+  parentMustBeRoot: "Solo se pueden crear subcategorías bajo categorías principales",
+  hasSubcategories: "No se puede eliminar: tiene subcategorías asociadas",
+  hasProducts: "No se puede eliminar: tiene productos asociados",
+  internalError: "Error interno del servidor",
+} as const
