@@ -1,0 +1,5 @@
+export * from "./get-productos-proveedor.handler"
+export * from "./post-producto-proveedor.handler"
+export * from "./get-producto-proveedor.handler"
+export * from "./patch-producto-proveedor.handler"
+export * from "./delete-producto-proveedor.handler"
