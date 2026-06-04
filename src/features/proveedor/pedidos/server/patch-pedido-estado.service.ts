@@ -11,6 +11,7 @@ import {
   toDbEstado,
 } from "@/features/pedidos/server/pedido-estado"
 import { PROVEEDOR_PEDIDOS_MESSAGES } from "./types"
+import { notifyTenderoPedidoEstado } from "@/features/notificaciones/server/pedido-notificacion.helper"
 
 type TPatchPedidoEstadoServiceResult =
   | { ok: true; data: IPedidoProveedor }
@@ -25,7 +26,15 @@ export async function patchPedidoEstadoService(
 
   const { data: existing, error: fetchError } = await supabaseAdmin
     .from("pedidos")
-    .select("id, estado")
+    .select(
+      `
+      id,
+      estado,
+      codigo,
+      tendero_id,
+      proveedores(nombre_empresa)
+    `
+    )
     .eq("codigo", codigo)
     .eq("proveedor_id", proveedorId)
     .maybeSingle()
@@ -106,6 +115,21 @@ export async function patchPedidoEstadoService(
       status: 500,
     }
   }
+
+  const proveedores = existing.proveedores as
+    | { nombre_empresa: string }
+    | { nombre_empresa: string }[]
+    | null
+  const proveedorNombre = Array.isArray(proveedores)
+    ? proveedores[0]?.nombre_empresa
+    : proveedores?.nombre_empresa
+
+  await notifyTenderoPedidoEstado({
+    tenderoId: existing.tendero_id as number,
+    pedidoCodigo: codigo,
+    estado: nuevoEstado,
+    proveedorNombre: proveedorNombre ?? "Proveedor",
+  })
 
   return { ok: true, data: mapped }
 }

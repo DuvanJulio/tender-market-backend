@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server"
-import type { IDeleteCityResponse, IPostCityResponse } from "../interfaces"
+import type {
+  IDeleteCityResponse,
+  IPatchCityResponse,
+  IPostCityResponse,
+} from "../interfaces"
 
 export function mastersPostCityJsonResponse(
   body: IPostCityResponse,
@@ -38,4 +42,22 @@ export function mastersDeleteCitySuccessResponse(
   data: NonNullable<IDeleteCityResponse["data"]>
 ) {
   return mastersDeleteCityJsonResponse({ success: true, message, data }, 200)
+}
+
+export function mastersPatchCityJsonResponse(
+  body: IPatchCityResponse,
+  status: number
+) {
+  return NextResponse.json(body, { status })
+}
+
+export function mastersPatchCityErrorResponse(message: string, status: number) {
+  return mastersPatchCityJsonResponse({ success: false, message }, status)
+}
+
+export function mastersPatchCitySuccessResponse(
+  message: string,
+  data: NonNullable<IPatchCityResponse["data"]>
+) {
+  return mastersPatchCityJsonResponse({ success: true, message, data }, 200)
 }

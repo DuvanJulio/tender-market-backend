@@ -21,6 +21,23 @@ function startOfMonthIso(): string {
   return new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 }
 
+function startOfPreviousMonthIso(): string {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
+}
+
+function startOfTodayIso(): string {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+}
+
+function startOfYesterdayIso(): string {
+  const today = new Date(startOfTodayIso())
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  return yesterday.toISOString()
+}
+
 function calcPercentChange(current: number, previous: number): number | null {
   if (previous === 0) return current > 0 ? 100 : null
   return Math.round(((current - previous) / previous) * 1000) / 10
@@ -144,8 +161,138 @@ async function fetchPendingApprovals(
   return items.slice(0, 5)
 }
 
+type TRawPedidoCiudad = {
+  total: number
+  tenderos:
+    | {
+        direccion_id: number | null
+        direcciones:
+          | { ciudad_id: number }
+          | { ciudad_id: number }[]
+          | null
+      }
+    | {
+        direccion_id: number | null
+        direcciones:
+          | { ciudad_id: number }
+          | { ciudad_id: number }[]
+          | null
+      }[]
+    | null
+}
+
+function pickCiudadIdFromPedido(row: TRawPedidoCiudad): number | null {
+  const tenderos = row.tenderos
+  if (!tenderos) return null
+
+  const tendero = Array.isArray(tenderos) ? tenderos[0] : tenderos
+  const direcciones = tendero?.direcciones
+  if (!direcciones) return null
+
+  const dir = Array.isArray(direcciones) ? direcciones[0] : direcciones
+  const ciudadId = dir?.ciudad_id
+  return typeof ciudadId === "number" ? ciudadId : null
+}
+
+async function sumPedidosRevenue(from?: string, to?: string): Promise<number> {
+  let query = supabaseAdmin
+    .from("pedidos")
+    .select("total")
+    .neq("estado", "cancelado")
+
+  if (from) query = query.gte("created_at", from)
+  if (to) query = query.lt("created_at", to)
+
+  const { data, error } = await query
+  if (error) {
+    console.error("Error al sumar ingresos de pedidos:", error)
+    return 0
+  }
+
+  return (data ?? []).reduce((sum, row) => sum + Number(row.total), 0)
+}
+
+async function countPedidos(from: string, to?: string): Promise<number> {
+  let query = supabaseAdmin
+    .from("pedidos")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", from)
+    .neq("estado", "cancelado")
+
+  if (to) query = query.lt("created_at", to)
+
+  const { count, error } = await query
+  if (error) {
+    console.error("Error al contar pedidos:", error)
+    return 0
+  }
+
+  return count ?? 0
+}
+
+async function fetchPedidosStatsByCiudad(
+  cityIds: number[]
+): Promise<Map<number, { pedidos: number; ingresos: number }>> {
+  const map = new Map<number, { pedidos: number; ingresos: number }>()
+  if (cityIds.length === 0) return map
+
+  const allowedCityIds = new Set(cityIds)
+
+  const { data, error } = await supabaseAdmin
+    .from("pedidos")
+    .select("total, tenderos(direccion_id, direcciones(ciudad_id))")
+    .neq("estado", "cancelado")
+
+  if (error) {
+    console.error("Error al cargar pedidos por ciudad:", error)
+    return map
+  }
+
+  for (const row of (data ?? []) as TRawPedidoCiudad[]) {
+    const ciudadId = pickCiudadIdFromPedido(row)
+    if (!ciudadId || !allowedCityIds.has(ciudadId)) continue
+
+    const current = map.get(ciudadId) ?? { pedidos: 0, ingresos: 0 }
+    current.pedidos += 1
+    current.ingresos += Number(row.total)
+    map.set(ciudadId, current)
+  }
+
+  return map
+}
+
 async function fetchRecentActivity(): Promise<IRecentActivityItem[]> {
   const activities: IRecentActivityItem[] = []
+
+  const { data: pedidosRecientes } = await supabaseAdmin
+    .from("pedidos")
+    .select(
+      "codigo, total, created_at, tenderos(nombre_tienda), proveedores(nombre_empresa)"
+    )
+    .neq("estado", "cancelado")
+    .order("created_at", { ascending: false })
+    .limit(3)
+
+  for (const row of pedidosRecientes ?? []) {
+    const tenderos = row.tenderos as
+      | { nombre_tienda: string }
+      | { nombre_tienda: string }[]
+      | null
+    const proveedores = row.proveedores as
+      | { nombre_empresa: string }
+      | { nombre_empresa: string }[]
+      | null
+
+    const tendero = Array.isArray(tenderos) ? tenderos[0] : tenderos
+    const proveedor = Array.isArray(proveedores) ? proveedores[0] : proveedores
+
+    activities.push({
+      type: "order",
+      action: "Nuevo pedido",
+      name: `${tendero?.nombre_tienda ?? "Tendero"} · ${proveedor?.nombre_empresa ?? "Proveedor"}`,
+      occurred_at: row.created_at as string,
+    })
+  }
 
   const { data: nuevosUsuarios } = await supabaseAdmin
     .from("usuarios")
@@ -195,22 +342,24 @@ async function fetchRecentActivity(): Promise<IRecentActivityItem[]> {
 
 function buildTopCiudades(
   ciudades: { id: number; nombre: string }[],
-  porCiudadMap: Map<number, ICityStatsItem>
+  porCiudadMap: Map<number, ICityStatsItem>,
+  pedidosByCiudad: Map<number, { pedidos: number; ingresos: number }>
 ): ITopCiudadStats[] {
   return ciudades
     .map((ciudad) => {
       const stats = porCiudadMap.get(ciudad.id)
+      const pedidosStats = pedidosByCiudad.get(ciudad.id)
       const usuarios = (stats?.tenderos ?? 0) + (stats?.proveedores ?? 0)
       return {
         ciudad_id: ciudad.id,
         nombre: ciudad.nombre,
         usuarios,
-        pedidos: 0,
-        ingresos: 0,
+        pedidos: pedidosStats?.pedidos ?? 0,
+        ingresos: pedidosStats?.ingresos ?? 0,
       }
     })
-    .filter((c) => c.usuarios > 0)
-    .sort((a, b) => b.usuarios - a.usuarios)
+    .filter((c) => c.usuarios > 0 || c.pedidos > 0)
+    .sort((a, b) => b.ingresos - a.ingresos || b.pedidos - a.pedidos)
     .slice(0, 5)
 }
 
@@ -244,6 +393,9 @@ export async function getStatsService(): Promise<TGetStatsServiceResult> {
   }
 
   const monthStart = startOfMonthIso()
+  const prevMonthStart = startOfPreviousMonthIso()
+  const todayStart = startOfTodayIso()
+  const yesterdayStart = startOfYesterdayIso()
 
   const [
     tenderosCount,
@@ -253,6 +405,11 @@ export async function getStatsService(): Promise<TGetStatsServiceResult> {
     ciudadesRes,
     aprobacionesPendientes,
     actividadReciente,
+    ingresosTotales,
+    ingresosMesActual,
+    ingresosMesAnterior,
+    pedidosHoy,
+    pedidosAyer,
   ] = await Promise.all([
     supabaseAdmin
       .from("tenderos")
@@ -269,6 +426,11 @@ export async function getStatsService(): Promise<TGetStatsServiceResult> {
       ? fetchPendingApprovals(estadoPendienteId)
       : Promise.resolve([]),
     fetchRecentActivity(),
+    sumPedidosRevenue(),
+    sumPedidosRevenue(monthStart),
+    sumPedidosRevenue(prevMonthStart, monthStart),
+    countPedidos(todayStart),
+    countPedidos(yesterdayStart, todayStart),
   ])
 
   if (tenderosCount.error || proveedoresCount.error) {
@@ -288,10 +450,7 @@ export async function getStatsService(): Promise<TGetStatsServiceResult> {
     countProfilesByCity("proveedores", estadoActivoId, porCiudadMap),
   ])
 
-  const pedidosHoy = 0
-  const pedidosAyer = 0
-  const ingresosTotales = 0
-  const ingresosMesAnterior = 0
+  const pedidosByCiudad = await fetchPedidosStatsByCiudad(cityIds)
 
   return {
     ok: true,
@@ -303,14 +462,14 @@ export async function getStatsService(): Promise<TGetStatsServiceResult> {
       proveedores_nuevos_mes: proveedoresNuevosMes,
       ingresos_totales: ingresosTotales,
       ingresos_cambio_porcentaje: calcPercentChange(
-        ingresosTotales,
+        ingresosMesActual,
         ingresosMesAnterior
       ),
       pedidos_hoy: pedidosHoy,
       pedidos_cambio_porcentaje: calcPercentChange(pedidosHoy, pedidosAyer),
       aprobaciones_pendientes: aprobacionesPendientes,
       actividad_reciente: actividadReciente,
-      top_ciudades: buildTopCiudades(ciudades, porCiudadMap),
+      top_ciudades: buildTopCiudades(ciudades, porCiudadMap, pedidosByCiudad),
     },
   }
 }

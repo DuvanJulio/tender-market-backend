@@ -6,6 +6,8 @@ import {
   type TRawPedidoTendero,
 } from "@/features/pedidos/server/pedido-mapper"
 import { TENDERO_PEDIDOS_MESSAGES } from "./types"
+import { notifyAdminsNuevoPedido } from "@/features/notificaciones/server/admin-notificacion.helper"
+import { notifyProveedorNuevoPedido } from "@/features/notificaciones/server/pedido-notificacion.helper"
 
 type TPostPedidoTenderoServiceResult =
   | {
@@ -73,6 +75,14 @@ export async function postPedidoTenderoService(
   }
 
   const lineItems: TLineItem[] = []
+
+  const { data: tenderoRow } = await supabaseAdmin
+    .from("tenderos")
+    .select("nombre_tienda")
+    .eq("id", tenderoId)
+    .maybeSingle()
+
+  const nombreTienda = (tenderoRow?.nombre_tienda as string) ?? "Tendero"
 
   for (const item of body.items) {
     const producto = productoMap.get(item.producto_id)
@@ -210,7 +220,20 @@ export async function postPedidoTenderoService(
       contactName
     )
 
-    if (mapped) createdPedidos.push(mapped)
+    if (mapped) {
+      createdPedidos.push(mapped)
+      await Promise.all([
+        notifyProveedorNuevoPedido({
+          proveedorId,
+          pedidoCodigo: codigo,
+          nombreTienda,
+        }),
+        notifyAdminsNuevoPedido({
+          pedidoCodigo: codigo,
+          nombreTienda,
+        }),
+      ])
+    }
   }
 
   return {

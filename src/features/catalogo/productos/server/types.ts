@@ -9,5 +9,6 @@ export const PRODUCTOS_MESSAGES = {
   invalidEstado: "Estado no válido",
   onlyBorradorCanModerate:
     "Solo se pueden aprobar o rechazar productos en estado pendiente",
+  invalidTransition: "No se puede cambiar a ese estado desde el estado actual",
   internalError: "Error interno del servidor",
 } as const

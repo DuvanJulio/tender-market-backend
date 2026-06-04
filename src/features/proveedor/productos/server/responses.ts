@@ -4,6 +4,7 @@ import type {
   IGetProductoProveedorResponse,
   IGetProductosProveedorResponse,
   IPatchProductoProveedorResponse,
+  IPostProductoImagenResponse,
   IPostProductoProveedorResponse,
 } from "../interfaces"
 
@@ -47,6 +48,16 @@ export function proveedorProductoDeleteSuccessResponse(
   data: { id: number }
 ) {
   return jsonResponse<IDeleteProductoProveedorResponse>(
+    { success: true, message, data },
+    200
+  )
+}
+
+export function proveedorProductoImagenSuccessResponse(
+  message: string,
+  data: NonNullable<IPostProductoImagenResponse["data"]>
+) {
+  return jsonResponse<IPostProductoImagenResponse>(
     { success: true, message, data },
     200
   )

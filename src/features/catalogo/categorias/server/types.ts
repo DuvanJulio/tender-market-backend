@@ -13,5 +13,7 @@ export const CATEGORIAS_MESSAGES = {
   parentMustBeRoot: "Solo se pueden crear subcategorías bajo categorías principales",
   hasSubcategories: "No se puede eliminar: tiene subcategorías asociadas",
   hasProducts: "No se puede eliminar: tiene productos asociados",
+  updateSuccess: "Categoría actualizada correctamente",
+  updateFailed: "No se pudo actualizar la categoría",
   internalError: "Error interno del servidor",
 } as const

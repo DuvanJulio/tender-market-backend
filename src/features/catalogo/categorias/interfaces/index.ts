@@ -9,7 +9,9 @@ export type ICategoriaRow = {
 export type ICategoriaSubAdmin = {
   id: number
   nombre: string
+  slug: string
   productos: number
+  estado: boolean
 }
 
 export type ICategoriaAdmin = {
@@ -63,4 +65,16 @@ export type IDeleteCategoriaResponse = {
   success: boolean
   message: string
   data?: { id: number }
+}
+
+export type TPatchCategoriaBody = {
+  nombre?: string
+  slug?: string
+  estado?: boolean
+}
+
+export type IPatchCategoriaResponse = {
+  success: boolean
+  message: string
+  data?: ICategoriaCreated
 }

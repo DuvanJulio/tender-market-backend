@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { notifyAdminsProductoPendiente } from "@/features/notificaciones/server/admin-notificacion.helper"
 import type {
   IProductoProveedor,
   TPostProductoProveedorBody,
@@ -39,5 +40,19 @@ export async function postProductoProveedorService(
     }
   }
 
-  return { ok: true, data: mapProductoProveedor(data as never) }
+  const mapped = mapProductoProveedor(data as never)
+  if (mapped) {
+    const { data: proveedor } = await supabaseAdmin
+      .from("proveedores")
+      .select("nombre_empresa")
+      .eq("id", proveedorId)
+      .maybeSingle()
+
+    await notifyAdminsProductoPendiente({
+      nombreProducto: mapped.nombre,
+      proveedorNombre: (proveedor?.nombre_empresa as string) ?? "Proveedor",
+    })
+  }
+
+  return { ok: true, data: mapped }
 }
