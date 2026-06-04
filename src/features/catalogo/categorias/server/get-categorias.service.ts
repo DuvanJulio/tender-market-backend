@@ -101,7 +101,9 @@ export async function getCategoriasService(
       (child) => ({
         id: child.id,
         nombre: child.nombre,
+        slug: child.slug,
         productos: productCounts.get(child.id) ?? 0,
+        estado: child.estado,
       })
     )
 

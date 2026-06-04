@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import type {
   IDeleteCategoriaResponse,
   IGetCategoriasResponse,
+  IPatchCategoriaResponse,
   IPostCategoriaResponse,
 } from "../interfaces"
 
@@ -41,6 +42,16 @@ export function categoriasDeleteSuccessResponse(
   data: NonNullable<IDeleteCategoriaResponse["data"]>
 ) {
   return categoriasJsonResponse<IDeleteCategoriaResponse>(
+    { success: true, message, data },
+    200
+  )
+}
+
+export function categoriasPatchSuccessResponse(
+  message: string,
+  data: NonNullable<IPatchCategoriaResponse["data"]>
+) {
+  return categoriasJsonResponse<IPatchCategoriaResponse>(
     { success: true, message, data },
     200
   )

@@ -80,3 +80,9 @@ export type IDeleteProductoProveedorResponse = {
   message: string
   data?: { id: number }
 }
+
+export type IPostProductoImagenResponse = {
+  success: boolean
+  message: string
+  data?: { url: string; path: string }
+}

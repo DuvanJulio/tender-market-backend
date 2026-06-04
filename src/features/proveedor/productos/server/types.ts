@@ -15,6 +15,8 @@ export const PROVEEDOR_PRODUCTOS_MESSAGES = {
   precioInvalid: "El precio debe ser mayor a cero",
   stockInvalid: "El stock no puede ser negativo",
   internalError: "Error interno del servidor",
+  imagenRequired: "Selecciona una imagen para subir",
+  imagenUploadSuccess: "Imagen subida correctamente",
 } as const
 
 export const STOCK_BAJO_UMBRAL = 10

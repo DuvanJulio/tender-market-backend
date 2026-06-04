@@ -14,6 +14,7 @@ type TRawCityWithDept = {
   id: number
   nombre: string
   estado: boolean
+  departamento_id: number
   departamentos: { nombre: string } | { nombre: string }[] | null
 }
 
@@ -31,6 +32,7 @@ function mapCityWithDepartment(row: TRawCityWithDept): ICityOption {
     id: row.id,
     nombre: row.nombre,
     estado: row.estado,
+    departamento_id: row.departamento_id,
     departamento: departamento ?? null,
   }
 }
@@ -49,7 +51,7 @@ export async function getCitiesService(
 ): Promise<TGetCitiesServiceResult> {
   let queryWithDept = supabaseAdmin
     .from("ciudades")
-    .select("id, nombre, estado, departamentos(nombre)")
+    .select("id, nombre, estado, departamento_id, departamentos(nombre)")
     .order("nombre")
 
   if (!options?.includeInactive) {

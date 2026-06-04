@@ -22,5 +22,7 @@ export const MASTERS_MESSAGES = {
     "No se puede eliminar: hay direcciones asociadas a esta ciudad",
   cityDeleteFailed: "No se pudo eliminar la ciudad",
   cityDeleteSuccess: "Ciudad eliminada exitosamente",
+  cityUpdateSuccess: "Ciudad actualizada exitosamente",
+  cityUpdateFailed: "No se pudo actualizar la ciudad",
   internalError: "Error interno del servidor",
 } as const

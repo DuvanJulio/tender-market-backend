@@ -1,4 +1,11 @@
-import { deleteCityHandler } from "@/features/masters/server"
+import { deleteCityHandler, patchCityHandler } from "@/features/masters/server"
+
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  return patchCityHandler(request, context)
+}
 
 export async function DELETE(
   request: Request,

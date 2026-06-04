@@ -9,6 +9,7 @@ import {
   canTenderoCancelEstado,
 } from "@/features/pedidos/server/pedido-estado"
 import { TENDERO_PEDIDOS_MESSAGES } from "./types"
+import { notifyProveedorPedidoCancelado } from "@/features/notificaciones/server/pedido-notificacion.helper"
 
 type TCancelPedidoTenderoServiceResult =
   | { ok: true; data: NonNullable<ReturnType<typeof mapPedidoTendero>> }
@@ -21,7 +22,15 @@ export async function cancelPedidoTenderoService(
 ): Promise<TCancelPedidoTenderoServiceResult> {
   const { data: existing, error: fetchError } = await supabaseAdmin
     .from("pedidos")
-    .select("id, estado")
+    .select(
+      `
+      id,
+      estado,
+      codigo,
+      proveedor_id,
+      tenderos(nombre_tienda)
+    `
+    )
     .eq("codigo", codigo)
     .eq("tendero_id", tenderoId)
     .maybeSingle()
@@ -117,6 +126,20 @@ export async function cancelPedidoTenderoService(
       status: 500,
     }
   }
+
+  const tenderos = existing.tenderos as
+    | { nombre_tienda: string }
+    | { nombre_tienda: string }[]
+    | null
+  const nombreTienda = Array.isArray(tenderos)
+    ? tenderos[0]?.nombre_tienda
+    : tenderos?.nombre_tienda
+
+  await notifyProveedorPedidoCancelado({
+    proveedorId: existing.proveedor_id as number,
+    pedidoCodigo: codigo,
+    nombreTienda: nombreTienda ?? "Tendero",
+  })
 
   return { ok: true, data: mapped }
 }

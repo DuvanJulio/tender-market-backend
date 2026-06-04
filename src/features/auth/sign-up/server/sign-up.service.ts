@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { notifyAdminsUsuarioPendiente } from "@/features/notificaciones/server/admin-notificacion.helper"
 import type { ISignUpRequest, ISignUpResponse, TSignUpRole } from "../interfaces"
 import { SIGN_UP_MESSAGES } from "./types"
 
@@ -84,6 +85,20 @@ export async function signUpService(
     direccionData.id
   )
   if (profileError) return profileError
+
+  if (payload.rol === "tendero" || payload.rol === "proveedor") {
+    const nombre =
+      (payload.rol === "tendero"
+        ? payload.nombre_tienda
+        : payload.nombre_empresa) ||
+      [payload.nombre, payload.apellido].filter(Boolean).join(" ").trim() ||
+      "Usuario"
+
+    await notifyAdminsUsuarioPendiente({
+      rol: payload.rol,
+      nombre,
+    })
+  }
 
   return {
     ok: true,

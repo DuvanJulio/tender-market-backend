@@ -8,6 +8,19 @@ type TPatchProductoEstadoServiceResult =
 
 const ALLOWED_TARGET_ESTADOS: TProductoEstadoDb[] = ["publicado", "inactivo"]
 
+function isValidEstadoTransition(
+  current: TProductoEstadoDb,
+  next: TProductoEstadoDb
+): boolean {
+  if (current === next) return true
+  if (current === "borrador") {
+    return next === "publicado" || next === "inactivo"
+  }
+  if (current === "publicado") return next === "inactivo"
+  if (current === "inactivo") return next === "publicado"
+  return false
+}
+
 export async function patchProductoEstadoService(
   productoId: number,
   body: TPatchProductoEstadoBody
@@ -42,11 +55,20 @@ export async function patchProductoEstadoService(
     }
   }
 
-  if (producto.estado !== "borrador") {
+  const currentEstado = producto.estado as TProductoEstadoDb
+
+  if (!isValidEstadoTransition(currentEstado, body.estado)) {
     return {
       ok: false,
-      message: PRODUCTOS_MESSAGES.onlyBorradorCanModerate,
+      message: PRODUCTOS_MESSAGES.invalidTransition,
       status: 409,
+    }
+  }
+
+  if (currentEstado === body.estado) {
+    return {
+      ok: true,
+      data: { id: producto.id, estado: currentEstado },
     }
   }
 
