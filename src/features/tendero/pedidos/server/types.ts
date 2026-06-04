@@ -1,0 +1,18 @@
+export const TENDERO_PEDIDOS_MESSAGES = {
+  loadSuccess: "Pedidos cargados",
+  loadFailed: "No se pudieron cargar los pedidos",
+  createSuccess: "Pedido realizado correctamente",
+  createFailed: "No se pudo crear el pedido",
+  cancelSuccess: "Pedido cancelado",
+  cancelFailed: "No se pudo cancelar el pedido",
+  notFound: "Pedido no encontrado",
+  invalidBody: "Datos del pedido inválidos",
+  emptyCart: "El carrito está vacío",
+  productNotFound: "Uno o más productos no están disponibles",
+  insufficientStock: "Stock insuficiente para uno o más productos",
+  invalidTransition: "No puedes cancelar este pedido en su estado actual",
+  checkoutSuccess: "Datos de entrega cargados",
+  checkoutFailed: "No se pudieron cargar los datos de entrega",
+  noAddress: "Configura una dirección de entrega en tu perfil",
+  internalError: "Error interno del servidor",
+} as const
