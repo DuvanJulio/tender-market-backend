@@ -42,6 +42,10 @@ export function isValidTransition(
   return ALLOWED_TRANSITIONS[current]?.includes(next) ?? false
 }
 
+export function canTenderoCancelEstado(current: TDbPedidoEstado): boolean {
+  return current === "pendiente"
+}
+
 export const ESTADOS_VENTA: TDbPedidoEstado[] = [
   "procesando",
   "enviado",

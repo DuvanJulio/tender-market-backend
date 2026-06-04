@@ -1,4 +1,8 @@
-import type { IPedidoProductoItem, IPedidoProveedor } from "../interfaces"
+import type {
+  IPedidoProductoItem,
+  IPedidoProveedor,
+  IPedidoTendero,
+} from "../interfaces"
 import { toApiEstado } from "./pedido-estado"
 
 type TRawDireccion = {
@@ -17,6 +21,7 @@ type TRawTendero = {
 }
 
 export type TRawPedidoItem = {
+  producto_id?: number | null
   nombre: string
   cantidad: number
   precio_unitario: number
@@ -61,10 +66,53 @@ export function mapPedidoItems(
   items: TRawPedidoItem[] | null | undefined
 ): IPedidoProductoItem[] {
   return (items ?? []).map((item) => ({
+    producto_id: item.producto_id ?? null,
     name: item.nombre,
     quantity: item.cantidad,
     price: Number(item.precio_unitario),
   }))
+}
+
+type TRawProveedor = {
+  nombre_empresa: string
+  telefono: string | null
+}
+
+export type TRawPedidoTendero = TRawPedido & {
+  proveedores: TRawProveedor | TRawProveedor[] | null
+}
+
+function pickProveedor(
+  proveedores: TRawPedidoTendero["proveedores"]
+): TRawProveedor | null {
+  if (!proveedores) return null
+  return Array.isArray(proveedores) ? proveedores[0] ?? null : proveedores
+}
+
+export function mapPedidoTendero(
+  row: TRawPedidoTendero,
+  items?: TRawPedidoItem[] | null,
+  contactName?: string
+): IPedidoTendero | null {
+  const apiEstado = toApiEstado(row.estado)
+  if (!apiEstado) return null
+
+  const tendero = pickTendero(row.tenderos)
+  const proveedor = pickProveedor(row.proveedores)
+  const productos = mapPedidoItems(items ?? row.pedido_items)
+
+  return {
+    id: row.codigo,
+    supplier: proveedor?.nombre_empresa ?? "Proveedor",
+    supplierPhone: proveedor?.telefono ?? "—",
+    address: formatAddress(tendero),
+    contact: contactName ?? tendero?.nombre_tienda ?? "Tendero",
+    items: productos.length,
+    total: Number(row.total),
+    status: apiEstado,
+    occurred_at: row.created_at,
+    products: productos,
+  }
 }
 
 export function mapPedidoProveedor(
