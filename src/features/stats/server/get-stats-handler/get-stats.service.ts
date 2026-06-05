@@ -410,8 +410,6 @@ export async function getStatsService(): Promise<TGetStatsServiceResult> {
     ingresosMesAnterior,
     pedidosHoy,
     pedidosAyer,
-    pedidosMensuales,
-    productosTotal,
   ] = await Promise.all([
     supabaseAdmin
       .from("tenderos")
@@ -433,10 +431,6 @@ export async function getStatsService(): Promise<TGetStatsServiceResult> {
     sumPedidosRevenue(prevMonthStart, monthStart),
     countPedidos(todayStart),
     countPedidos(yesterdayStart, todayStart),
-    countPedidos(monthStart),
-    supabaseAdmin
-      .from("productos")
-      .select("id", { count: "exact", head: true }),
   ])
 
   if (tenderosCount.error || proveedoresCount.error) {
