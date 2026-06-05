@@ -56,7 +56,8 @@ export async function patchPedidoEstadoHandler(
 
     return proveedorPedidoPatchSuccessResponse(
       PROVEEDOR_PEDIDOS_MESSAGES.updateSuccess,
-      result.data
+      result.data,
+      result.whatsapp_url
     )
   } catch (error) {
     console.error("Error en patch-pedido-estado:", error)

@@ -20,10 +20,11 @@ export function proveedorPedidosListSuccessResponse(
 
 export function proveedorPedidoPatchSuccessResponse(
   message: string,
-  data: NonNullable<IPatchPedidoEstadoResponse["data"]>
+  data: NonNullable<IPatchPedidoEstadoResponse["data"]>,
+  whatsapp_url?: string | null
 ) {
   return NextResponse.json<IPatchPedidoEstadoResponse>(
-    { success: true, message, data },
+    { success: true, message, data, whatsapp_url: whatsapp_url ?? null },
     { status: 200 }
   )
 }

@@ -99,4 +99,6 @@ export type IPatchPedidoEstadoResponse = {
   success: boolean
   message: string
   data?: IPedidoProveedor
+  /** Enlace wa.me para que el proveedor avise al tendero (confirmación, envío, etc.) */
+  whatsapp_url?: string | null
 }

@@ -38,6 +38,8 @@ export interface IGetStatsResponseData {
   ingresos_cambio_porcentaje: number | null
   pedidos_hoy: number
   pedidos_cambio_porcentaje: number | null
+  pedidos_mensuales: number
+  productos_total: number
   aprobaciones_pendientes: IPendingApprovalItem[]
   actividad_reciente: IRecentActivityItem[]
   top_ciudades: ITopCiudadStats[]

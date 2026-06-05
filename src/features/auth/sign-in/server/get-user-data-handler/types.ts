@@ -5,6 +5,7 @@ export type { IGetUserDataResponse }
 export interface IUsuarioBasicProfile {
   nombre: string | null
   apellido: string | null
+  telefono: string | null
   roles: { nombre: string } | { nombre: string }[] | null
 }
 

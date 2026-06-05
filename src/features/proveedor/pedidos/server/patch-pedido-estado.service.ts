@@ -12,9 +12,10 @@ import {
 } from "@/features/pedidos/server/pedido-estado"
 import { PROVEEDOR_PEDIDOS_MESSAGES } from "./types"
 import { notifyTenderoPedidoEstado } from "@/features/notificaciones/server/pedido-notificacion.helper"
+import { buildPedidoWhatsAppNotifyUrl } from "@/features/pedidos/server/pedido-whatsapp.helper"
 
 type TPatchPedidoEstadoServiceResult =
-  | { ok: true; data: IPedidoProveedor }
+  | { ok: true; data: IPedidoProveedor; whatsapp_url: string | null }
   | { ok: false; message: string; status: number }
 
 export async function patchPedidoEstadoService(
@@ -124,12 +125,24 @@ export async function patchPedidoEstadoService(
     ? proveedores[0]?.nombre_empresa
     : proveedores?.nombre_empresa
 
+  const proveedorLabel = proveedorNombre ?? "Proveedor"
+
   await notifyTenderoPedidoEstado({
     tenderoId: existing.tendero_id as number,
     pedidoCodigo: codigo,
     estado: nuevoEstado,
-    proveedorNombre: proveedorNombre ?? "Proveedor",
+    proveedorNombre: proveedorLabel,
   })
 
-  return { ok: true, data: mapped }
+  const whatsapp_url = buildPedidoWhatsAppNotifyUrl({
+    estado: nuevoEstado,
+    codigo,
+    proveedorNombre: proveedorLabel,
+    nombreTienda: mapped.customer,
+    telefonoTendero: mapped.customerPhone || null,
+    direccion: mapped.address,
+    total: mapped.total,
+  })
+
+  return { ok: true, data: mapped, whatsapp_url }
 }

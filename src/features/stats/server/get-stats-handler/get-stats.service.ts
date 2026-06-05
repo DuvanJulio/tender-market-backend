@@ -467,6 +467,8 @@ export async function getStatsService(): Promise<TGetStatsServiceResult> {
       ),
       pedidos_hoy: pedidosHoy,
       pedidos_cambio_porcentaje: calcPercentChange(pedidosHoy, pedidosAyer),
+      pedidos_mensuales: pedidosMensuales,
+      productos_total: productosTotal.error ? 0 : (productosTotal.count ?? 0),
       aprobaciones_pendientes: aprobacionesPendientes,
       actividad_reciente: actividadReciente,
       top_ciudades: buildTopCiudades(ciudades, porCiudadMap, pedidosByCiudad),
