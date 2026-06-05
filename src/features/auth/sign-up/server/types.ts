@@ -16,5 +16,7 @@ export const SIGN_UP_MESSAGES = {
   tenderoProfileFailed: "Error al crear perfil de tendero",
   proveedorProfileFailed: "Error al crear perfil de proveedor",
   success: "Usuario registrado exitosamente",
+  successVerifyEmail:
+    "Cuenta creada. Revisa tu correo y confirma tu email antes de iniciar sesión.",
   internalError: "Error interno del servidor",
 } as const

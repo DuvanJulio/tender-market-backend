@@ -18,7 +18,11 @@ export async function signUpHandler(request: Request) {
       return signUpErrorResponse(result.message, result.status)
     }
 
-    return signUpSuccessResponse(SIGN_UP_MESSAGES.success, result.data)
+    const message = result.data.requires_email_verification
+      ? SIGN_UP_MESSAGES.successVerifyEmail
+      : SIGN_UP_MESSAGES.success
+
+    return signUpSuccessResponse(message, result.data)
   } catch (error) {
     console.error("Error en sign-up:", error)
     return signUpErrorResponse(SIGN_UP_MESSAGES.internalError, 500)

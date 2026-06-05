@@ -1,3 +1,4 @@
+import { getFrontendUrl } from "@/lib/auth/get-frontend-url"
 import { createClient } from "@/lib/supabase/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { notifyAdminsUsuarioPendiente } from "@/features/notificaciones/server/admin-notificacion.helper"
@@ -18,6 +19,7 @@ export async function signUpService(
     password: payload.password,
     options: {
       data: { rol: payload.rol },
+      emailRedirectTo: `${getFrontendUrl()}/verify-email`,
     },
   })
 
@@ -100,10 +102,13 @@ export async function signUpService(
     })
   }
 
+  const requiresEmailVerification = !authData.session
+
   return {
     ok: true,
     data: {
       rol: payload.rol as TSignUpRole,
+      requires_email_verification: requiresEmailVerification,
       ...(authData.session
         ? { token: authData.session.access_token }
         : undefined),
