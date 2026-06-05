@@ -25,10 +25,19 @@ export interface ISignInResponse {
 export interface IGetUserDataResponseData {
   isAuthenticated: boolean
   nombre?: string
+  apellido?: string
+  nombre_completo?: string
   email?: string
+  telefono?: string
   rol?: TUserRole
   /** Nombre de tienda (tendero) o empresa (proveedor). */
   negocio?: string
+  telefono_negocio?: string
+  nit?: string
+  nombre_contacto?: string
+  direccion?: string
+  barrio?: string
+  ciudad?: string
 }
 
 export interface IGetUserDataResponse {

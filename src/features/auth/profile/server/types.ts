@@ -1,0 +1,17 @@
+export const PROFILE_MESSAGES = {
+  success: "Perfil actualizado correctamente",
+  passwordSuccess: "Contraseña actualizada correctamente",
+  unauthorized: "No autenticado",
+  emailRequired: "El correo es obligatorio",
+  emailInvalid: "Ingresa un correo válido",
+  telefonoRequired: "El teléfono es obligatorio",
+  emailInUse: "Ese correo ya está registrado",
+  emailSame: "El correo es el mismo que el actual",
+  updateFailed: "No se pudo actualizar el perfil",
+  currentPasswordRequired: "Ingresa tu contraseña actual",
+  newPasswordRequired: "Ingresa la nueva contraseña",
+  newPasswordMin: "La nueva contraseña debe tener al menos 8 caracteres",
+  currentPasswordInvalid: "La contraseña actual no es correcta",
+  passwordUpdateFailed: "No se pudo actualizar la contraseña",
+  internalError: "Error interno del servidor",
+} as const

@@ -410,6 +410,8 @@ export async function getStatsService(): Promise<TGetStatsServiceResult> {
     ingresosMesAnterior,
     pedidosHoy,
     pedidosAyer,
+    pedidosMensuales,
+    productosTotal,
   ] = await Promise.all([
     supabaseAdmin
       .from("tenderos")
@@ -431,6 +433,10 @@ export async function getStatsService(): Promise<TGetStatsServiceResult> {
     sumPedidosRevenue(prevMonthStart, monthStart),
     countPedidos(todayStart),
     countPedidos(yesterdayStart, todayStart),
+    countPedidos(monthStart),
+    supabaseAdmin
+      .from("productos")
+      .select("id", { count: "exact", head: true }),
   ])
 
   if (tenderosCount.error || proveedoresCount.error) {
@@ -467,6 +473,8 @@ export async function getStatsService(): Promise<TGetStatsServiceResult> {
       ),
       pedidos_hoy: pedidosHoy,
       pedidos_cambio_porcentaje: calcPercentChange(pedidosHoy, pedidosAyer),
+      pedidos_mensuales: pedidosMensuales,
+      productos_total: productosTotal.error ? 0 : (productosTotal.count ?? 0),
       aprobaciones_pendientes: aprobacionesPendientes,
       actividad_reciente: actividadReciente,
       top_ciudades: buildTopCiudades(ciudades, porCiudadMap, pedidosByCiudad),
