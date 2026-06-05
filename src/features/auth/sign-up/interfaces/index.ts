@@ -25,6 +25,7 @@ export interface ISignUpRequest {
 export interface ISignUpResponseData {
   rol: TSignUpRole
   token?: string
+  requires_email_verification?: boolean
 }
 
 export interface ISignUpResponse {

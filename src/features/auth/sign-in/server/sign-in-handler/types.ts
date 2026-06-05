@@ -15,6 +15,8 @@ export const SIGN_IN_MESSAGES = {
     "Tu cuenta está inactiva o bloqueada. Contacta al administrador si necesitas ayuda.",
   pendingAccount:
     "Tu cuenta está pendiente de aprobación. Te notificaremos cuando puedas ingresar.",
+  emailNotConfirmed:
+    "Debes confirmar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.",
   success: "Login exitoso",
   internalError: "Error interno del servidor",
 } as const

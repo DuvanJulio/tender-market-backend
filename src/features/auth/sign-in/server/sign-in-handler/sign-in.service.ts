@@ -50,6 +50,18 @@ export async function signInService(
   })
 
   if (authError || !authData.session || !authData.user) {
+    const unconfirmedEmail =
+      authError?.message?.toLowerCase().includes("email not confirmed") ||
+      authError?.code === "email_not_confirmed"
+
+    if (unconfirmedEmail) {
+      return {
+        ok: false,
+        message: SIGN_IN_MESSAGES.emailNotConfirmed,
+        status: 403,
+      }
+    }
+
     return {
       ok: false,
       message: SIGN_IN_MESSAGES.invalidCredentials,
